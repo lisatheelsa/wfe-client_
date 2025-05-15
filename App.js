@@ -16,11 +16,11 @@ import TaskList from './components/TaskList';
 import MyTasks from './components/MyTasks';
 
 const PROCESS_CONFIG = {
-  BP1: 4512,
-  BP2: 4511,
-  BP3: 4513,
-  BP4: 4514,
-  BP5: 4515
+  BP1: 4542,
+  BP2: 4544,
+  BP3: 4546,
+  BP4: 4548,
+  BP5: 4550
 };
 
 const App = () => {
@@ -324,12 +324,12 @@ const renderProcessItem = ({ item }) => {
           >
             <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>Завершенные</Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={[styles.tab, activeTab === 'my' && styles.activeTab]}
             onPress={() => setActiveTab('my')}
           >
             <Text style={[styles.tabText, activeTab === 'my' && styles.activeTabText]}>Мои задачи</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {activeTab === 'active' ? (
