@@ -16,11 +16,11 @@ import TaskList from './components/TaskList';
 import MyTasks from './components/MyTasks';
 
 const PROCESS_CONFIG = {
-  BP1: 38,
-  BP2: 37,
-  BP3: 39,
-  BP4: 40,
-  BP5: 43
+  BP1: 44,
+  BP2: 45,
+  BP3: 46,
+  BP4: 47,
+  BP5: 48
 };
 
 const App = () => {
