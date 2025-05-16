@@ -16,11 +16,11 @@ import TaskList from './components/TaskList';
 import MyTasks from './components/MyTasks';
 
 const PROCESS_CONFIG = {
-  BP1: 4542,
-  BP2: 4544,
-  BP3: 4546,
-  BP4: 4548,
-  BP5: 4550
+  BP1: 38,
+  BP2: 37,
+  BP3: 39,
+  BP4: 40,
+  BP5: 43
 };
 
 const App = () => {
@@ -141,111 +141,89 @@ const App = () => {
     }
   };
 
-  const completeTask = async (taskId) => {
-    if (!token) {
-      Alert.alert('Ошибка', 'Требуется авторизация');
-      return;
-    }
-  
-    try {
-      const api = getAuthenticatedAxios(token);
-      console.log("Отправка запроса на:", `task/${taskId}/complete`);
-  
-      const response = await api.post(
-        `task/${taskId}/complete`,
-        {},
-        { 
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        }
-      );
-  
-      // Находим задачу в процессах перед удалением
-      let completedTask = null;
-      const updatedProcesses = processes.map(process => {
-        const taskIndex = process.tasks.findIndex(t => t.id === taskId);
-        if (taskIndex !== -1) {
-          completedTask = process.tasks[taskIndex];
-          // Удаляем задачу из списка активных
-          return {
-            ...process,
-            tasks: process.tasks.filter(t => t.id !== taskId)
-          };
-        }
-        return process;
-      });
-  
-      if (completedTask) {
-        // Добавляем информацию о процессе в выполненную задачу
-        const processName = Object.keys(PROCESS_CONFIG).find(
-          key => PROCESS_CONFIG[key] === completedTask.processId
-        );
-        
-        const enrichedTask = {
-          ...completedTask,
-          processName: processName || `ID ${completedTask.processId}`,
-          completionDate: new Date().toISOString()
-        };
-  
-        // Обновляем состояние
-        setCompletedTasks(prev => [enrichedTask, ...prev]);
-        setProcesses(updatedProcesses);
-      }
-  
-      Alert.alert("Успех", `Задача #${taskId} завершена`);
-      await fetchAllProcesses();
-      return response.data;
-  
-    } catch (error) {
-      console.error("Ошибка при завершении задачи:", error);
-      
-      let errorMessage = 'Неизвестная ошибка';
-      if (error.response) {
-        errorMessage = `HTTP ${error.response.status}: ${JSON.stringify(error.response.data)}`;
-        
-        if (error.response.status === 404) {
-          errorMessage = `Эндпоинт не найден. Проверьте: 
-  - Правильность пути: /restapi/task/{id}/complete
-  - Метод запроса: POST
-  - BaseURL axios: ${api.defaults.baseURL}`;
-        }
-      } else if (error.request) {
-        errorMessage = "Сервер не ответил. Проверьте сеть или CORS.";
-      }
-      
-      Alert.alert('Ошибка', errorMessage);
-      throw error;
-    }
-  };
+const completeTask = async (taskId) => {
+  if (!token) {
+    Alert.alert('Ошибка', 'Требуется авторизация');
+    return;
+  }
 
-  const renderCompletedTasks = () => (
+  try {
+    const api = getAuthenticatedAxios(token);
+    
+    // 1. Завершаем задачу
+    await api.post(`task/${taskId}/complete`, {}, {
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // 2. Находим процесс, к которому принадлежит задача
+    const processWithTask = processes.find(process => 
+      process.tasks.some(t => t.id === taskId)
+    );
+
+    if (processWithTask) {
+      // 3. Обновляем данные процесса
+      const processResponse = await api.get(`/process/${processWithTask.id}`);
+      const updatedProcess = processResponse.data;
+
+      // 4. Обновляем состояние
+      setProcesses(prev => 
+        prev.map(process => 
+          process.id === processWithTask.id 
+            ? { ...process, data: updatedProcess } 
+            : process
+        )
+      );
+
+      // 5. Перезагружаем задачи (если нужно)
+      await fetchTasksByProcessId(processWithTask.id);
+    }
+
+    Alert.alert("Успех", `Задача #${taskId} завершена`);
+    
+  } catch (error) {
+    console.error("Ошибка:", error);
+    Alert.alert("Ошибка", "Не удалось обновить статус процесса");
+  }
+};
+ 
+const getCompletedProcesses = () => {
+  return processes.filter(process => 
+    process.data?.executionStatus === "ENDED"
+  );
+};
+
+  const renderCompletedProcesses = () => {
+  const completedProcesses = getCompletedProcesses();
+
+  return (
     <FlatList
-      data={completedTasks}
+      data={completedProcesses}
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
-          <Text style={styles.notFoundText}>Нет завершенных задач</Text>
-          <Text style={styles.hintText}>Здесь будут отображаться выполненные задачи</Text>
+          <Text style={styles.notFoundText}>Нет завершенных процессов</Text>
+          <Text style={styles.hintText}>Здесь будут отображаться завершенные процессы</Text>
         </View>
       }
       renderItem={({ item }) => (
         <View style={styles.completedTaskContainer}>
-          <Text style={styles.completedTaskTitle}>{item.name}</Text>
+          <Text style={styles.completedTaskTitle}>{item.data?.definitionName}</Text>
           <Text style={styles.completedTaskSubtitle}>ID: {item.id}</Text>
           <Text style={styles.completedTaskSubtitle}>
-            Процесс: {item.processName}
+            Статус: {item.data?.executionStatus}
           </Text>
-          {item.completionDate && (
+          {item.data?.endDate && (
             <Text style={styles.completedTaskDate}>
-              Выполнено: {new Date(item.completionDate).toLocaleString()}
+              Завершено: {new Date(item.data.endDate).toLocaleString()}
             </Text>
           )}
         </View>
       )}
-      keyExtractor={(item) => `completed-${item.id}`}
+      keyExtractor={(item) => `completed-process-${item.id}`}
     />
   );
+};
   const toggleTasksVisibility = async (processId) => {
     try {
       setProcesses(prev => 
@@ -324,12 +302,7 @@ const renderProcessItem = ({ item }) => {
           >
             <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>Завершенные</Text>
           </TouchableOpacity>
-          {/* <TouchableOpacity
-            style={[styles.tab, activeTab === 'my' && styles.activeTab]}
-            onPress={() => setActiveTab('my')}
-          >
-            <Text style={[styles.tabText, activeTab === 'my' && styles.activeTabText]}>Мои задачи</Text>
-          </TouchableOpacity> */}
+          
         </View>
 
         {activeTab === 'active' ? (
@@ -339,7 +312,7 @@ const renderProcessItem = ({ item }) => {
             keyExtractor={item => `process-${item.id}`}
           />
         ) : activeTab === 'completed' ? (
-          renderCompletedTasks()
+          renderCompletedProcesses()
         ) : (
           <MyTasks token={token} />
         )}
