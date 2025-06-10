@@ -1,0 +1,13 @@
+
+{
+  "cli": {
+    "version": ">= 3.0.0"
+  },
+  "build": {
+    "android": {
+      "releaseChannel": "default",
+      "developmentClient": false,
+      "distribution": "internal"
+    }
+  }
+}

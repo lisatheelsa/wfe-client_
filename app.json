@@ -3,6 +3,10 @@
     "name": "wfe-client",
     "slug": "wfe-client",
     "version": "1.0.0",
+    "sdkVersion": "49.0.0",
+    "platforms": [
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,10 +23,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.example.wfeclient"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c9fd3ae1-1daa-4c71-bba5-7d207c860541"
+      }
     }
   }
 }
